@@ -4,6 +4,7 @@
 module.exports = function (sequelize, DataTypes){
     //컬럼 name, price, imageUrl, seller
     //제약조건 allowNull : 컬럼의 값이 없어도 되는지 여부 (default:true)
+    //https://github.com/design-view/lamp-shopping-server
     const product = sequelize.define('Product', {
         name: {
             type: DataTypes.STRING(20),

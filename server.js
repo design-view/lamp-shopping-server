@@ -2,98 +2,102 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const port = 3000;
+
 const models = require('./models');
 
 //json형식의 데이터를 처리할수 있게 설정
 app.use(express.json());
 //브라우저 cors이슈를 막기위해 사용(모든 브라우저의 요청을 일정하게 받겠다)
 app.use(cors());
-
+//upload폴더에 있는 파일에 접근할수 있도록 설정 
+app.use("/upload", express.static("upload"));
+//업로드 이미지를 관리하는 스토리지 서버를 연결 -> 멀터를 사용하겠다.
+const multer = require("multer");
+//이미지 파일이 요청오면 어디에 저장할건지 지정
+const upload = multer({ 
+    storage: multer.diskStorage({
+        destination: function(req, file, cb){
+            //어디에 저장할거냐? upload/
+            cb(null, 'upload/')
+        },
+        filename: function(req, file, cb){
+            //어떤 이름으로 저장할거야?
+            //file객체의 오리지널 이름으로 저장하겠다
+            cb(null, file.originalname)
+        }
+    })
+})
 //요청처리
 //app.메서드(url, 함수)
+//이미지파일을 post로 요청이 왔을때 upload라는 폴더에 이미지를 저장하기
+//이미지가 하나일때 single
+app.post('/image', upload.single('image'), (req, res)=>{
+    const file = req.file;
+    console.log(file);
+    res.send({
+        imageUrl: "http://localhost:3000/"+file.destination+file.filename
+    })
+})
+
+
+
 app.get('/products',async (req,res)=>{
-    const result = {
-        products: [
-            {
-                id:1,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product1.jpg",
-                seller: "green",
-            },
-            {
-                id:2,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product2.jpg",
-                seller: "green",
-            },
-            {
-                id:3,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product3.jpg",
-                seller: "green",
-            },
-            {
-                id:4,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product4.jpg",
-                seller: "green",
-            },
-            {
-                id:5,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product1.jpg",
-                seller: "green",
-            },
-            {
-                id:6,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product2.jpg",
-                seller: "green",
-            },
-            {
-                id:7,
-                name:"거실조명",
-                price: 50000,
-                imgsrc:"images/products/product3.jpg",
-                seller: "green",
-            },
-            {
-                id:8,
-                name:"거실조명",
-                price: 50000,
-                
-                imgsrc:"images/products/product4.jpg",
-                seller: "green",
-            },
-            
-        ]
-    }
-    res.send(result);
+    //데이터 베이스 조회하기
+    models.Product.findAll()
+    .then((result)=>{
+        console.log()
+        res.send(result);
+    })
+    .catch(e=>{
+        console.error(e)
+        res.send("파일 조회에 문제가 있습니다.")
+    })
+
 })
 //method get이고 url은 /product/2 로 요청이 온경우 
 app.get('/product/:id', async (req, res)=> {
     const params = req.params;
-    const { id } = params;
-    const product = {
-        id:id,
-        name:"서버에서 보내는 이름",
-        price: 50000,
-        imgsrc:"images/products/product4.jpg",
-        seller: "green",
-    }
-    res.send(product);
-
+    // const { id } = params;
+    //하나만 조회할때는 findOne -> select문
+    models.Product.findOne({
+        //조건절
+        where: {
+            id:params.id
+        }
+    })
+    .then(result=>{
+        res.send(result);
+    })
+    .catch(e=>{
+        console.log(e);
+        res.send("상품조회에 문제가 생겼습니다.");
+    })
 });
-app.post('/green',async (req,res)=>{
-    console.log(req);
-    res.send('그린 게시판에 게시글이 등록되었습니다.');
-});
+app.post("/products",(req, res)=>{
+    //http body에 있는데이터
+    const body = req.body;
+    //body객체에 있는 값을 각각 변수에 할당
+    const { name, price, seller, imageUrl } = body;
+    if(!name || !price || !seller) {
+        res.send("모든 필드를 입력해주세요");
+    } 
+    //Product테이블에 레코드를 삽입
+    models.Product.create({
+        name,
+        price,
+        seller,
+        imageUrl
+    }).then(result=>{
+        console.log("상품 생성 결과 : ", result);
+        res.send({
+            result
+        })
+    })
+    .catch(e=>{
+        console.error(e);
+        res.send("상품 업로드에 문제가 생겼습니다.")
+    })
+})
 //실행
 app.listen(port, ()=>{
     console.log('쇼핑몰 서버가 동작중입니다.');
