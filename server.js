@@ -77,8 +77,8 @@ app.post("/products",(req, res)=>{
     //http body에 있는데이터
     const body = req.body;
     //body객체에 있는 값을 각각 변수에 할당
-    const { name, price, seller, imageUrl } = body;
-    if(!name || !price || !seller) {
+    const { name, price, seller, imageUrl, description } = body;
+    if(!name || !price || !seller ) {
         res.send("모든 필드를 입력해주세요");
     } 
     //Product테이블에 레코드를 삽입
@@ -86,7 +86,8 @@ app.post("/products",(req, res)=>{
         name,
         price,
         seller,
-        imageUrl
+        imageUrl,
+        description
     }).then(result=>{
         console.log("상품 생성 결과 : ", result);
         res.send({
@@ -97,6 +98,12 @@ app.post("/products",(req, res)=>{
         console.error(e);
         res.send("상품 업로드에 문제가 생겼습니다.")
     })
+})
+//delete삭제하기
+app.delete('/product/:id', async (req, res) => {
+    const params = req.params;
+    models.Product.destroy({ where: { id: params.id }})
+    .then( res.send("상품이 삭제되었습니다."));
 })
 //실행
 app.listen(port, ()=>{
